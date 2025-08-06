@@ -1,0 +1,278 @@
+<!-- templates/dashboard.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dream Homes Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="page-container">
+        <header class="dashboard-header">
+            <div class="logo">
+                <h1>Dream Homes</h1>
+                <span>Property Management</span>
+            </div>
+            <div class="header-actions">
+                <div class="filter-group">
+                    <button class="filter-btn active" onclick="filterByStatus('all', this)">All</button>
+                    <button class="filter-btn" onclick="filterByStatus('Available', this)">Available</button>
+                    <button class="filter-btn" onclick="filterByStatus('Occupied', this)">Occupied</button>
+                    <button class="filter-btn" onclick="filterByStatus('Under Maintenance', this)">Maintenance</button>
+                </div>
+                <div class="search-bar">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M21.71,20.29,18,16.61A9,9,0,1,0,16.61,18l3.68,3.68a1,1,0,0,0,1.42,0A1,1,0,0,0,21.71,20.29ZM11,18a7,7,0,1,1,7-7A7,7,0,0,1,11,18Z"/></svg>
+                    <input type="text" id="searchInput" onkeyup="filterProperties()" placeholder="Search properties...">
+                </div>
+                <a href="{{ url_for('add_property') }}" class="btn btn-primary">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M19,11H13V5a1,1,0,0,0-2,0v6H5a1,1,0,0,0,0,2h6v6a1,1,0,0,0,2,0V13h6a1,1,0,0,0,0-2Z"/></svg>
+                    Add Property
+                </a>
+            </div>
+        </header>
+
+        <main class="property-grid">
+            {% for prop in properties %}
+            <div class="property-card" data-property-id="{{ prop.id }}" data-status="{{ prop.status }}">
+                <!-- Display Mode -->
+                <div class="card-display-mode">
+                    <img src="" alt="{{ prop.type }}" class="property-image">
+                    <div class="property-info">
+                        <div class="info-header">
+                            <h2 class="property-address">{{ prop.address }}</h2>
+                            <span class="property-status status-{{ prop.status.lower().replace(' ', '-') }}">{{ prop.status }}</span>
+                        </div>
+                        <div class="property-details">
+                            <span class="property-type">{{ prop.type }}</span>
+                            <span class="property-rent">₹{{ "%.0f"|format(prop.monthly_rent) }}/month</span>
+                        </div>
+                        
+                        <!-- AI Compliance Section -->
+                        {% if prop.compliance %}
+                        <div class="compliance-section">
+                            <button class="compliance-toggle" onclick="toggleCompliance(this)">
+                                <span>Compliance Checklist</span>
+                                <svg class="icon chevron" viewBox="0 0 24 24"><path d="M12,15.71a1,1,0,0,1-.71-.29l-4-4A1,1,0,0,1,8.71,10L12,13.3l3.29-3.29a1,1,0,0,1,1.42,1.42l-4,4A1,1,0,0,1,12,15.71Z"/></svg>
+                            </button>
+                            <div class="compliance-list">
+                                {% for task in prop.compliance %}
+                                <div class="task {% if task.is_completed %}task-complete{% else %}task-incomplete{% endif %}" data-task-id="{{ task.id }}" onclick="toggleTask(this)">
+                                    <div class="custom-checkbox">
+                                        <svg class="icon checkmark" viewBox="0 0 24 24"><path d="M9.86,18a1,1,0,0,1-.71-0.29l-4-4a1,1,0,1,1,1.42-1.42L9.86,15.59l8.88-8.88a1,1,0,1,1,1.42,1.42l-9.59,9.59A1,1,0,0,1,9.86,18Z"/></svg>
+                                        <svg class="icon cross" viewBox="0 0 24 24"><path d="M13.41,12l4.3-4.29a1,1,0,1,0-1.42-1.42L12,10.59,7.71,6.29A1,1,0,0,0,6.29,7.71L10.59,12l-4.3,4.29a1,1,0,0,0,0,1.42,1,1,0,0,0,1.42,0L12,13.41l4.29,4.3a1,1,0,0,0,1.42,0,1,1,0,0,0,0-1.42Z"/></svg>
+                                    </div>
+                                    <label>{{ task.rule_description }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn-icon" onclick="enterEditMode(this)">
+                            <svg class="icon" viewBox="0 0 24 24"><path d="M20.71,7.04c.39-.39.39-1,0-1.41l-2.34-2.34c-.39-.39-1-.39-1.41,0l-1.83,1.83,3.75,3.75M3,17.25V21h3.75L17.81,9.94l-3.75-3.75L3,17.25Z"/></svg>
+                        </button>
+                        <form action="{{ url_for('delete_property', id=prop.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to permanently delete this property?');">
+                            <button type="submit" class="btn-icon btn-danger">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M20,6H16V5a3,3,0,0,0-3-3H11A3,3,0,0,0,8,5V6H4A1,1,0,0,0,4,8H5V19a3,3,0,0,0,3,3h8a3,3,0,0,0,3-3V8h1a1,1,0,0,0,0-2ZM10,5a1,1,0,0,1,1-1h2a1,1,0,0,1,1,1V6H10Zm7,14a1,1,0,0,1-1,1H8a1,1,0,0,1-1-1V8H17Z"/></svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <!-- Edit Mode (hidden by default) -->
+                <div class="card-edit-mode" style="display: none;">
+                    <div class="edit-form">
+                        <div class="form-group">
+                            <label>Address</label>
+                            <input type="text" name="address" value="{{ prop.address }}">
+                        </div>
+                        <div class="form-group">
+                            <label>Type</label>
+                            <select name="type">
+                                <option {% if prop.type == 'Apartment' %}selected{% endif %}>Apartment</option>
+                                <option {% if prop.type == 'Villa' %}selected{% endif %}>Villa</option>
+                                <option {% if prop.type == 'Shop' %}selected{% endif %}>Shop</option>
+                                <option {% if prop.type == 'Office' %}selected{% endif %}>Office</option>
+                                <option {% if prop.type == 'Penthouse' %}selected{% endif %}>Penthouse</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Monthly Rent (₹)</label>
+                            <input type="number" name="monthly_rent" value="{{ prop.monthly_rent }}">
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select name="status">
+                                <option {% if prop.status == 'Available' %}selected{% endif %}>Available</option>
+                                <option {% if prop.status == 'Occupied' %}selected{% endif %}>Occupied</option>
+                                <option {% if prop.status == 'Under Maintenance' %}selected{% endif %}>Under Maintenance</option>
+                            </select>
+                        </div>
+                        <div class="edit-actions">
+                            <button class="btn btn-secondary" onclick="cancelEditMode(this)">Cancel</button>
+                            <button class="btn btn-primary" onclick="saveChanges(this)">Save</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="no-properties">
+                <h2>Your portfolio is empty.</h2>
+                <p>Let's add your first property to get started.</p>
+                <a href="{{ url_for('add_property') }}" class="btn btn-primary">Add Property Now</a>
+            </div>
+            {% endfor %}
+            <div id="no-results-message" class="no-properties" style="display: none;">
+                <h2>No matching properties found.</h2>
+                <p>Try a different search term or filter.</p>
+            </div>
+        </main>
+    </div>
+
+<script>
+let currentStatusFilter = 'all'; // Global variable to hold the current filter state
+
+// --- Filter by Status ---
+function filterByStatus(status, element) {
+    currentStatusFilter = status;
+    // Update active button style
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    element.classList.add('active');
+    // Re-run the main search/filter function
+    filterProperties();
+}
+
+// --- Combined Search and Filter ---
+function filterProperties() {
+    const searchFilter = document.getElementById('searchInput').value.toUpperCase();
+    const cards = document.querySelectorAll('.property-card');
+    const noResultsMessage = document.getElementById('no-results-message');
+    let visibleCount = 0;
+
+    cards.forEach(card => {
+        // Check status filter
+        const statusMatch = (currentStatusFilter === 'all' || card.dataset.status === currentStatusFilter);
+
+        // Check search filter
+        const address = card.querySelector('.property-address').textContent.toUpperCase();
+        const type = card.querySelector('.property-type').textContent.toUpperCase();
+        const id = card.dataset.propertyId;
+        const searchMatch = (address.includes(searchFilter) || type.includes(searchFilter) || id.includes(searchFilter));
+
+        // Show card only if it matches both filters
+        if (statusMatch && searchMatch) {
+            card.style.display = "flex";
+            visibleCount++;
+        } else {
+            card.style.display = "none";
+        }
+    });
+
+    noResultsMessage.style.display = (visibleCount === 0 && cards.length > 0) ? "block" : "none";
+}
+
+// --- Compliance Checklist Functionality ---
+function toggleCompliance(button) {
+    const list = button.nextElementSibling;
+    const chevron = button.querySelector('.chevron');
+    list.classList.toggle('active');
+    chevron.classList.toggle('active');
+}
+
+function toggleTask(taskElement) {
+    const taskId = taskElement.dataset.taskId;
+    
+    fetch('/compliance/toggle', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ task_id: taskId })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            taskElement.classList.toggle('task-complete', data.is_completed);
+            taskElement.classList.toggle('task-incomplete', !data.is_completed);
+        } else {
+            console.error('Failed to toggle task:', data.message);
+            alert('Error: Could not update compliance status.');
+        }
+    })
+    .catch(err => console.error('Fetch error:', err));
+}
+
+// --- Inline CRUD Functionality ---
+function enterEditMode(button) {
+    const card = button.closest('.property-card');
+    card.querySelector('.card-display-mode').style.display = 'none';
+    card.querySelector('.card-edit-mode').style.display = 'block';
+}
+
+function cancelEditMode(button) {
+    const card = button.closest('.property-card');
+    card.querySelector('.card-display-mode').style.display = 'flex';
+    card.querySelector('.card-edit-mode').style.display = 'none';
+}
+
+function saveChanges(button) {
+    const card = button.closest('.property-card');
+    const propertyId = card.dataset.propertyId;
+    const editForm = card.querySelector('.edit-form');
+
+    const data = {
+        address: editForm.querySelector('input[name="address"]').value,
+        type: editForm.querySelector('select[name="type"]').value,
+        monthly_rent: editForm.querySelector('input[name="monthly_rent"]').value,
+        status: editForm.querySelector('select[name="status"]').value,
+    };
+
+    fetch(`/edit/${propertyId}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            const displayMode = card.querySelector('.card-display-mode');
+            displayMode.querySelector('.property-address').textContent = data.address;
+            displayMode.querySelector('.property-type').textContent = data.type;
+            displayMode.querySelector('.property-rent').innerHTML = `₹${parseInt(data.monthly_rent).toLocaleString()}/month`;
+            
+            const statusSpan = displayMode.querySelector('.property-status');
+            statusSpan.textContent = data.status;
+            statusSpan.className = `property-status status-${data.status.toLowerCase().replace(' ', '-')}`;
+            
+            // Update the data-status attribute for filtering
+            card.dataset.status = data.status;
+
+            cancelEditMode(button);
+        } else {
+            console.error('Failed to save changes:', result.message);
+            alert('Error: Could not save changes.');
+        }
+    })
+    .catch(err => console.error('Fetch error:', err));
+}
+
+// --- Dynamic Image Generation ---
+document.addEventListener('DOMContentLoaded', () => {
+    const colors = ['4f46e5', 'db2777', '16a34a', 'd97706', '7c3aed', '0d9488', 'c026d3'];
+    const images = document.querySelectorAll('.property-image');
+    images.forEach((img) => {
+        const type = img.alt;
+        const hash = type.split('').reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0);
+        const color = colors[Math.abs(hash) % colors.length];
+        const url = `https://placehold.co/600x400/${color}/f8fafc?text=${type.replace(' ', '+')}`;
+        img.src = url;
+    });
+});
+</script>
+</body>
+</html>
